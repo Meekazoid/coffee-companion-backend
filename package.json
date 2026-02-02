@@ -1,17 +1,31 @@
 {
   "name": "brewbuddy-backend",
   "version": "1.0.0",
+  "description": "BrewBuddy Backend API - Coffee brewing assistant with AI analysis",
   "type": "module",
-  "description": "Backend for BrewBuddy PWA",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node --watch server.js"
   },
+  "keywords": [
+    "brewbuddy",
+    "coffee",
+    "api",
+    "anthropic",
+    "claude"
+  ],
+  "author": "meekazoid",
+  "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0",
     "express": "^4.18.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "sqlite3": "^5.1.7",
+    "sqlite": "^5.1.1",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
