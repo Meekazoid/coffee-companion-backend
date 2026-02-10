@@ -4,8 +4,6 @@
 // ==========================================
 
 import pg from 'pg';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -75,9 +73,28 @@ export async function initDatabase() {
         console.log('📊 Initializing SQLite database...');
         dbType = 'sqlite';
         
+        // Lazy-load sqlite3 - only needed in development
+        let sqlite3;
+        let sqliteOpen;
+        try {
+            const sqlite3Module = await import('sqlite3');
+            sqlite3 = sqlite3Module.default;
+            const sqliteModule = await import('sqlite');
+            sqliteOpen = sqliteModule.open;
+        } catch (e) {
+            // sqlite3 is optional — only needed in development
+            if (process.env.NODE_ENV !== 'production') {
+                console.error('❌ sqlite3 is required for development. Run: npm install');
+                throw e;
+            }
+            // In production we use PostgreSQL, so sqlite3 not being available is fine
+            console.log('ℹ️  sqlite3 not available — using PostgreSQL in production');
+            throw e;
+        }
+        
         const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'brewbuddy.db');
         
-        db = await open({
+        db = await sqliteOpen({
             filename: dbPath,
             driver: sqlite3.Database
         });
