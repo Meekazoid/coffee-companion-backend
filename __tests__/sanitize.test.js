@@ -40,6 +40,14 @@ describe('Sanitization Utilities', () => {
             expect(stripHTML('&amp;')).toBe('');
             expect(stripHTML('Test&nbsp;Text')).toBe('TestText');
         });
+
+        test('should handle malformed/nested HTML tags', () => {
+            // Multiple passes handle nested tags
+            expect(stripHTML('<script<script>>')).toBe('>');
+            expect(stripHTML('<<script>>alert(1)<</script>>')).toBe('>alert(1)>');
+            // Verify actual dangerous content is removed
+            expect(stripHTML('<b>Normal <script>evil</script> text</b>')).toBe('Normal evil text');
+        });
     });
 
     describe('truncateString', () => {

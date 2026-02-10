@@ -12,10 +12,19 @@
  */
 export function stripHTML(str) {
     if (typeof str !== 'string') return '';
-    // Remove HTML tags and entities using regex
-    return str
-        .replace(/<[^>]*>/g, '')        // Remove HTML tags
-        .replace(/&[^;]+;/g, '');       // Remove HTML entities
+    
+    let result = str;
+    let previous = '';
+    
+    // Run multiple passes to handle nested/malformed tags like <script<script>>
+    while (result !== previous) {
+        previous = result;
+        result = result
+            .replace(/<[^>]*>/g, '')        // Remove HTML tags
+            .replace(/&[^;]+;/g, '');       // Remove HTML entities
+    }
+    
+    return result;
 }
 
 /**
