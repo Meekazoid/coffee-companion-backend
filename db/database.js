@@ -177,6 +177,42 @@ export function getDatabaseType() {
     return dbType;
 }
 
+/**
+ * Begin a database transaction
+ */
+export async function beginTransaction() {
+    const database = getDatabase();
+    if (dbType === 'postgresql') {
+        await database.pool.query('BEGIN');
+    } else {
+        await database.exec('BEGIN TRANSACTION');
+    }
+}
+
+/**
+ * Commit a database transaction
+ */
+export async function commit() {
+    const database = getDatabase();
+    if (dbType === 'postgresql') {
+        await database.pool.query('COMMIT');
+    } else {
+        await database.exec('COMMIT');
+    }
+}
+
+/**
+ * Rollback a database transaction
+ */
+export async function rollback() {
+    const database = getDatabase();
+    if (dbType === 'postgresql') {
+        await database.pool.query('ROLLBACK');
+    } else {
+        await database.exec('ROLLBACK');
+    }
+}
+
 export async function closeDatabase() {
     if (db && dbType === 'postgresql') {
         await db.pool.end();
@@ -450,5 +486,8 @@ export default {
     getDatabase,
     getDatabaseType,
     closeDatabase,
+    beginTransaction,
+    commit,
+    rollback,
     queries
 };

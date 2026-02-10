@@ -7,7 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import { initDatabase, getDatabase, queries } from './db/database.js';
+import { initDatabase, getDatabase, queries, beginTransaction, commit, rollback } from './db/database.js';
 
 dotenv.config();
 
@@ -67,6 +67,13 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
     : [];
 
+// Warn if ALLOWED_ORIGINS is not set in production
+if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+    console.warn('⚠️  WARNING: ALLOWED_ORIGINS is not set in production!');
+    console.warn('⚠️  CORS is misconfigured - this is a security risk.');
+    console.warn('⚠️  Please set ALLOWED_ORIGINS environment variable.');
+}
+
 if (process.env.NODE_ENV === 'development') {
     allowedOrigins.push('http://localhost:3000');
     allowedOrigins.push('http://localhost:5173');
@@ -86,7 +93,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Device-ID']
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -94,6 +101,107 @@ app.use('/api/', apiLimiter);
 
 console.log('🔒 CORS enabled for origins:', allowedOrigins);
 console.log('🛡️ Rate limiting: 100 req/15min (general), 10 req/hour (AI)');
+
+// ==========================================
+// AUTHENTICATION MIDDLEWARE
+// ==========================================
+
+/**
+ * Extract authentication credentials from headers with fallback to body/query
+ * Prioritizes headers for security (Authorization: Bearer <token>, X-Device-ID: <deviceId>)
+ */
+function extractAuthCredentials(req) {
+    // Extract token - prefer Authorization header, fallback to body/query
+    let token = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+    } else {
+        token = req.body?.token || req.query?.token;
+    }
+    
+    // Extract deviceId - prefer X-Device-ID header, fallback to body/query
+    const deviceId = req.headers['x-device-id'] || req.body?.deviceId || req.query?.deviceId;
+    
+    return { token, deviceId };
+}
+
+/**
+ * Authentication middleware - validates token and device binding
+ * Returns authenticated user or sends error response
+ */
+async function authenticateUser(req, res, next) {
+    try {
+        const { token, deviceId } = extractAuthCredentials(req);
+
+        if (!token) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Token required' 
+            });
+        }
+
+        if (!deviceId) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Device ID required' 
+            });
+        }
+
+        const user = await queries.getUserByToken(token);
+
+        if (!user) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Invalid token' 
+            });
+        }
+
+        // Check device binding
+        if (user.device_id) {
+            if (user.device_id !== deviceId) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Device mismatch'
+                });
+            }
+        } else {
+            // First-time device binding
+            await queries.bindDevice(user.id, deviceId, getDeviceInfo(req));
+            console.log(`🔗 Device bound: User ${user.username} → Device ${deviceId.substring(0, 8)}...`);
+        }
+
+        // Attach user to request for use in route handlers
+        req.user = user;
+        next();
+
+    } catch (error) {
+        console.error('Authentication error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Server error' 
+        });
+    }
+}
+
+/**
+ * Helper: Get Device Info
+ */
+function getDeviceInfo(req) {
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const platform = userAgent.includes('Mobile') ? 'mobile' : 'desktop';
+    const os = userAgent.includes('Mac') ? 'macOS' : 
+               userAgent.includes('Windows') ? 'Windows' :
+               userAgent.includes('Linux') ? 'Linux' : 
+               userAgent.includes('Android') ? 'Android' :
+               userAgent.includes('iPhone') ? 'iOS' : 'unknown';
+    
+    return JSON.stringify({
+        platform,
+        os,
+        userAgent: userAgent.substring(0, 100)
+    });
+}
 
 // ==========================================
 // DATABASE INITIALIZATION
@@ -108,11 +216,13 @@ const db = getDatabase();
 
 /**
  * Validate Token with Device-Binding
- * GET /api/auth/validate?token=xxx&deviceId=xxx
+ * GET /api/auth/validate
+ * Accepts token from Authorization: Bearer <token> header or query param (fallback)
+ * Accepts deviceId from X-Device-ID header or query param (fallback)
  */
 app.get('/api/auth/validate', async (req, res) => {
     try {
-        const { token, deviceId } = req.query;
+        const { token, deviceId } = extractAuthCredentials(req);
 
         if (!token) {
             return res.status(400).json({ 
@@ -175,60 +285,17 @@ app.get('/api/auth/validate', async (req, res) => {
     }
 });
 
-/**
- * Helper: Get Device Info
- */
-function getDeviceInfo(req) {
-    const userAgent = req.headers['user-agent'] || 'unknown';
-    const platform = userAgent.includes('Mobile') ? 'mobile' : 'desktop';
-    const os = userAgent.includes('Mac') ? 'macOS' : 
-               userAgent.includes('Windows') ? 'Windows' :
-               userAgent.includes('Linux') ? 'Linux' : 
-               userAgent.includes('Android') ? 'Android' :
-               userAgent.includes('iPhone') ? 'iOS' : 'unknown';
-    
-    return JSON.stringify({
-        platform,
-        os,
-        userAgent: userAgent.substring(0, 100)
-    });
-}
-
 // ==========================================
 // GRINDER PREFERENCE ENDPOINTS
 // ==========================================
 
 /**
  * Get Grinder Preference
- * GET /api/user/grinder?token=xxx&deviceId=xxx
+ * GET /api/user/grinder
  */
-app.get('/api/user/grinder', async (req, res) => {
+app.get('/api/user/grinder', authenticateUser, async (req, res) => {
     try {
-        const { token, deviceId } = req.query;
-
-        if (!token || !deviceId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token and Device ID required' 
-            });
-        }
-
-        const user = await queries.getUserByToken(token);
-        if (!user) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Invalid token' 
-            });
-        }
-
-        if (user.device_id && user.device_id !== deviceId) {
-            return res.status(403).json({
-                success: false,
-                error: 'Device mismatch'
-            });
-        }
-
-        const grinder = await queries.getGrinderPreference(user.id);
+        const grinder = await queries.getGrinderPreference(req.user.id);
 
         res.json({ 
             success: true, 
@@ -248,16 +315,9 @@ app.get('/api/user/grinder', async (req, res) => {
  * Update Grinder Preference
  * POST /api/user/grinder
  */
-app.post('/api/user/grinder', async (req, res) => {
+app.post('/api/user/grinder', authenticateUser, async (req, res) => {
     try {
-        const { token, deviceId, grinder } = req.body;
-
-        if (!token || !deviceId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token and Device ID required' 
-            });
-        }
+        const { grinder } = req.body;
 
         if (!grinder || !['fellow', 'comandante', 'timemore'].includes(grinder)) {
             return res.status(400).json({ 
@@ -266,24 +326,9 @@ app.post('/api/user/grinder', async (req, res) => {
             });
         }
 
-        const user = await queries.getUserByToken(token);
-        if (!user) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Invalid token' 
-            });
-        }
+        await queries.updateGrinderPreference(req.user.id, grinder);
 
-        if (user.device_id && user.device_id !== deviceId) {
-            return res.status(403).json({
-                success: false,
-                error: 'Device mismatch'
-            });
-        }
-
-        await queries.updateGrinderPreference(user.id, grinder);
-
-        console.log(`⚙️ Grinder updated: ${user.username} → ${grinder}`);
+        console.log(`⚙️ Grinder updated: ${req.user.username} → ${grinder}`);
 
         res.json({ 
             success: true,
@@ -305,35 +350,11 @@ app.post('/api/user/grinder', async (req, res) => {
 
 /**
  * Get Water Hardness
- * GET /api/user/water-hardness?token=xxx&deviceId=xxx
+ * GET /api/user/water-hardness
  */
-app.get('/api/user/water-hardness', async (req, res) => {
+app.get('/api/user/water-hardness', authenticateUser, async (req, res) => {
     try {
-        const { token, deviceId } = req.query;
-
-        if (!token || !deviceId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token and Device ID required' 
-            });
-        }
-
-        const user = await queries.getUserByToken(token);
-        if (!user) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Invalid token' 
-            });
-        }
-
-        if (user.device_id && user.device_id !== deviceId) {
-            return res.status(403).json({
-                success: false,
-                error: 'Device mismatch'
-            });
-        }
-
-        const waterHardness = await queries.getWaterHardness(user.id);
+        const waterHardness = await queries.getWaterHardness(req.user.id);
 
         res.json({ 
             success: true, 
@@ -353,16 +374,9 @@ app.get('/api/user/water-hardness', async (req, res) => {
  * Update Water Hardness
  * POST /api/user/water-hardness
  */
-app.post('/api/user/water-hardness', async (req, res) => {
+app.post('/api/user/water-hardness', authenticateUser, async (req, res) => {
     try {
-        const { token, deviceId, waterHardness } = req.body;
-
-        if (!token || !deviceId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token and Device ID required' 
-            });
-        }
+        const { waterHardness } = req.body;
 
         if (waterHardness === null || waterHardness === undefined) {
             return res.status(400).json({ 
@@ -380,24 +394,9 @@ app.post('/api/user/water-hardness', async (req, res) => {
             });
         }
 
-        const user = await queries.getUserByToken(token);
-        if (!user) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Invalid token' 
-            });
-        }
+        await queries.updateWaterHardness(req.user.id, hardnessValue);
 
-        if (user.device_id && user.device_id !== deviceId) {
-            return res.status(403).json({
-                success: false,
-                error: 'Device mismatch'
-            });
-        }
-
-        await queries.updateWaterHardness(user.id, hardnessValue);
-
-        console.log(`💧 Water hardness updated: ${user.username} → ${hardnessValue} °dH`);
+        console.log(`💧 Water hardness updated: ${req.user.username} → ${hardnessValue} °dH`);
 
         res.json({ 
             success: true,
@@ -417,35 +416,11 @@ app.post('/api/user/water-hardness', async (req, res) => {
 // COFFEE DATA ENDPOINTS
 // ==========================================
 
-app.get('/api/coffees', async (req, res) => {
+app.get('/api/coffees', authenticateUser, async (req, res) => {
     try {
-        const { token, deviceId } = req.query;
+        await queries.updateLastLogin(req.user.id);
 
-        if (!token || !deviceId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token and Device ID required' 
-            });
-        }
-
-        const user = await queries.getUserByToken(token);
-        if (!user) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Invalid token' 
-            });
-        }
-
-        if (user.device_id && user.device_id !== deviceId) {
-            return res.status(403).json({
-                success: false,
-                error: 'Device mismatch'
-            });
-        }
-
-        await queries.updateLastLogin(user.id);
-
-        const coffees = await queries.getUserCoffees(user.id);
+        const coffees = await queries.getUserCoffees(req.user.id);
 
         const parsed = coffees.map(c => ({
             id: c.id,
@@ -467,44 +442,35 @@ app.get('/api/coffees', async (req, res) => {
     }
 });
 
-app.post('/api/coffees', async (req, res) => {
+app.post('/api/coffees', authenticateUser, async (req, res) => {
     try {
-        const { token, deviceId, coffees } = req.body;
+        const { coffees } = req.body;
 
-        if (!token || !deviceId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token and Device ID required' 
-            });
-        }
+        // Start transaction to ensure atomic delete+insert operation
+        await beginTransaction();
 
-        const user = await queries.getUserByToken(token);
-        if (!user) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Invalid token' 
-            });
-        }
+        try {
+            await queries.deleteUserCoffees(req.user.id);
 
-        if (user.device_id && user.device_id !== deviceId) {
-            return res.status(403).json({
-                success: false,
-                error: 'Device mismatch'
-            });
-        }
-
-        await queries.deleteUserCoffees(user.id);
-
-        if (coffees && coffees.length > 0) {
-            for (const coffee of coffees) {
-                await queries.saveCoffee(user.id, JSON.stringify(coffee));
+            if (coffees && coffees.length > 0) {
+                for (const coffee of coffees) {
+                    await queries.saveCoffee(req.user.id, JSON.stringify(coffee));
+                }
             }
-        }
 
-        res.json({ 
-            success: true,
-            saved: coffees?.length || 0
-        });
+            // Commit transaction if all operations succeeded
+            await commit();
+
+            res.json({ 
+                success: true,
+                saved: coffees?.length || 0
+            });
+
+        } catch (txError) {
+            // Rollback transaction if any operation failed
+            await rollback();
+            throw txError;
+        }
 
     } catch (error) {
         console.error('Save coffees error:', error.message);
@@ -519,20 +485,11 @@ app.post('/api/coffees', async (req, res) => {
 // ANTHROPIC API PROXY (PROTECTED)
 // ==========================================
 
-app.post('/api/analyze-coffee', aiLimiter, async (req, res) => {
+app.post('/api/analyze-coffee', aiLimiter, authenticateUser, async (req, res) => {
     try {
-        const { imageData, mediaType, token, deviceId } = req.body;
+        const { imageData, mediaType } = req.body;
 
-        if (!token || !deviceId) {
-            return res.status(401).json({ success: false, error: 'Authentifizierung erforderlich.' });
-        }
-
-        const user = await queries.getUserByToken(token, deviceId);
-        if (!user) {
-            return res.status(403).json({ success: false, error: 'Token ungültig oder Gerät nicht verknüpft.' });
-        }
-
-        console.log(`📸 Analyse gestartet für User: ${user.username}`);
+        console.log(`📸 Analyse gestartet für User: ${req.user.username}`);
 
         if (!imageData) {
             return res.status(400).json({ 
