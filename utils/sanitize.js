@@ -85,7 +85,12 @@ export function validateProcess(process) {
         'wet hulled',
         'semi-washed',
         'pulped natural',
-        'carbonic maceration'
+        'carbonic maceration',
+        'anaerobic natural',
+        'anaerobic washed',
+        'yeast inoculated natural',
+        'nitro washed',
+        'extended fermentation'
     ];
     
     if (!process || typeof process !== 'string') return 'washed';
@@ -120,6 +125,7 @@ export function sanitizeCoffeeData(coffeeData) {
     const sanitized = {};
     
     // Field-level constraints from requirements
+    // These text fields are user-provided and need HTML stripping + truncation
     const stringFields = {
         name: 200,
         origin: 200,
@@ -147,8 +153,26 @@ export function sanitizeCoffeeData(coffeeData) {
         sanitized.altitude = cleanAltitude(coffeeData.altitude);
     }
     
-    // Preserve other fields that don't need sanitization
-    const nonStringFields = ['addedDate', 'id', 'savedAt', 'createdAt', 'updatedAt'];
+    // Preserve fields that don't need sanitization (dates, IDs, metadata)
+    const nonStringFields = [
+        'addedDate',       // ISO date string when coffee was added
+        'id',              // Database ID
+        'savedAt',         // Backend timestamp
+        'createdAt',       // Backend timestamp
+        'updatedAt',       // Backend timestamp
+        'roastDate',       // User-set roast date (YYYY-MM-DD)
+        'favorite',        // Boolean flag
+        'favoritedAt',     // ISO date string
+        'deleted',         // Boolean flag (soft delete / compost)
+        'deletedAt',       // ISO date string
+        'grindOffset',     // Integer: grinder-neutral adjustment
+        'customTemp',      // String: user-adjusted temperature
+        'customAmount',    // Number: user-adjusted coffee amount (grams)
+        'feedback',        // Object: brew feedback data
+        'initialGrind',    // String: initial grind setting (for reset)
+        'initialTemp',     // String: initial temperature (for reset)
+    ];
+    
     for (const field of nonStringFields) {
         if (coffeeData[field] !== undefined) {
             sanitized[field] = coffeeData[field];
