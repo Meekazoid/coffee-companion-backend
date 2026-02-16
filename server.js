@@ -1,6 +1,7 @@
 // ==========================================
-// BREWBUDDY BACKEND SERVER V5
+// BREWBUDDY BACKEND SERVER V5.1
 // Mit Grinder Preference + Water Hardness Support
+// + Card Editor PATCH Endpoint
 // ==========================================
 
 import express from 'express';
@@ -14,6 +15,7 @@ import waterHardnessRoutes from './routes/waterHardness.js';
 import coffeeRoutes from './routes/coffees.js';
 import analyzeRoutes from './routes/analyze.js';
 import healthRoutes from './routes/health.js';
+import brewsRoutes from './routes/brews.js';
 
 dotenv.config();
 
@@ -87,7 +89,7 @@ app.use(cors({
         }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Device-ID']
 }));
 
@@ -111,6 +113,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user/grinder', grinderRoutes);
 app.use('/api/user/water-hardness', waterHardnessRoutes);
 app.use('/api/coffees', coffeeRoutes);
+app.use('/api/brews', brewsRoutes);
 app.use('/api/analyze-coffee', analyzeRoutes);
 app.use('/api/health', healthRoutes);
 
@@ -138,10 +141,11 @@ app.use((err, req, res, next) => {
 // ==========================================
 
 app.listen(PORT, () => {
-    console.log(`🚀 BrewBuddy API v5.0 running on port ${PORT}`);
+    console.log(`🚀 BrewBuddy API v5.1 running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔒 CORS enabled for: ${allowedOrigins.join(', ')}`);
     console.log(`🛡️ Rate limiting active`);
     console.log(`⚙️ Grinder Preference: ENABLED`);
     console.log(`💧 Water Hardness: ENABLED`);
+    console.log(`✏️ Card Editor PATCH: ENABLED`);
 });
