@@ -1,7 +1,7 @@
 // ==========================================
-// BREWBUDDY BACKEND SERVER V5.1
-// Mit Grinder Preference + Water Hardness Support
-// + Card Editor PATCH Endpoint
+// DRIPMATE BACKEND SERVER V5.2
+// + Grinder Variants + Method Preference
+// + Water Hardness + Card Editor PATCH
 // ==========================================
 
 import express from 'express';
@@ -11,6 +11,7 @@ import rateLimit from 'express-rate-limit';
 import { initDatabase } from './db/database.js';
 import authRoutes from './routes/auth.js';
 import grinderRoutes from './routes/grinder.js';
+import methodRoutes from './routes/method.js';
 import waterHardnessRoutes from './routes/waterHardness.js';
 import coffeeRoutes from './routes/coffees.js';
 import analyzeRoutes from './routes/analyze.js';
@@ -64,7 +65,6 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
     : [];
 
-// Warn if ALLOWED_ORIGINS is not set in production
 if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
     console.warn('⚠️  WARNING: ALLOWED_ORIGINS is not set in production!');
     console.warn('⚠️  CORS is misconfigured - this is a security risk.');
@@ -111,6 +111,7 @@ await initDatabase();
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user/grinder', grinderRoutes);
+app.use('/api/user/method', methodRoutes);
 app.use('/api/user/water-hardness', waterHardnessRoutes);
 app.use('/api/coffees', coffeeRoutes);
 app.use('/api/brews', brewsRoutes);
@@ -141,11 +142,12 @@ app.use((err, req, res, next) => {
 // ==========================================
 
 app.listen(PORT, () => {
-    console.log(`🚀 BrewBuddy API v5.1 running on port ${PORT}`);
+    console.log(`🚀 dripmate API v5.2 running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔒 CORS enabled for: ${allowedOrigins.join(', ')}`);
     console.log(`🛡️ Rate limiting active`);
-    console.log(`⚙️ Grinder Preference: ENABLED`);
+    console.log(`⚙️ Grinder Variants: ENABLED (8 grinders)`);
+    console.log(`☕ Brew Method: ENABLED (v60/chemex/aeropress)`);
     console.log(`💧 Water Hardness: ENABLED`);
     console.log(`✏️ Card Editor PATCH: ENABLED`);
 });
