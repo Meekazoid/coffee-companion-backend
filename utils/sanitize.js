@@ -131,6 +131,7 @@ export function sanitizeCoffeeData(coffeeData) {
         origin: 200,
         cultivar: 200,
         roaster: 200,
+        roastery: 200,     // ← NEW: Rösterei field for card editor
         tastingNotes: 500
     };
     
