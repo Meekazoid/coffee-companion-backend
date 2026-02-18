@@ -196,7 +196,7 @@ For issues or questions:
 
 ## 🌟 Features Overview
 
-### Current Version: 5.0+
+### Current Version: 5.2.0
 - ✅ User authentication with device binding
 - ✅ Coffee inventory management
 - ✅ AI-powered coffee bag analysis
