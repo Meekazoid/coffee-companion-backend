@@ -145,6 +145,10 @@ DATABASE_URL=postgresql://user:password@host:5432/dbname
 ### Development Dependencies
 - **jest**: Testing framework
 
+### Optional Dependencies
+- **sqlite3**: SQLite client (required for development mode unless using PostgreSQL)
+- **sqlite**: SQLite wrapper
+
 ## 🔄 Recent Updates (v5.0)
 
 See [RELEASE_NOTES_v5.0.md](./RELEASE_NOTES_v5.0.md) for detailed information about:
@@ -194,7 +198,7 @@ For issues or questions:
 
 ## 🌟 Features Overview
 
-### Current Version: 5.2
+### Current Version: 5.0+
 - ✅ User authentication with device binding
 - ✅ Coffee inventory management
 - ✅ AI-powered coffee bag analysis
