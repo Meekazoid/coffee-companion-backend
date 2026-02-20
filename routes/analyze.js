@@ -6,6 +6,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { authenticateUser } from '../middleware/auth.js';
 import { sanitizeCoffeeData } from '../utils/sanitize.js';
+import { buildCoffeeDefaults, extractCoffeeJsonFromAnthropicResponse } from '../utils/analyzeResponse.js';
 
 const router = express.Router();
 
@@ -30,6 +31,14 @@ router.post('/', aiLimiter, authenticateUser, async (req, res) => {
             return res.status(400).json({ 
                 success: false,
                 error: 'Image data required' 
+            });
+        }
+
+        if (!process.env.ANTHROPIC_API_KEY) {
+            console.error('Analyze error: Missing ANTHROPIC_API_KEY');
+            return res.status(503).json({
+                success: false,
+                error: 'AI analysis is temporarily unavailable. Please try again later.'
             });
         }
 
@@ -74,32 +83,25 @@ Only return valid JSON, no other text.`
             })
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            throw new Error(data.error?.message || 'API error');
+            const providerError = data?.error?.message || 'AI provider request failed';
+            console.error('Analyze provider error:', response.status, providerError);
+
+            const statusCode = response.status === 429 ? 429 : 502;
+            return res.status(statusCode).json({
+                success: false,
+                error: statusCode === 429
+                    ? 'AI analysis limit reached. Please try again later.'
+                    : 'Analysis provider is unavailable. Please try again.'
+            });
         }
 
-        const text = data.content[0].text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        
-        if (!jsonMatch) {
-            throw new Error('Could not parse coffee data');
-        }
-
-        const coffeeData = JSON.parse(jsonMatch[0]);
+        const coffeeData = extractCoffeeJsonFromAnthropicResponse(data);
 
         // Apply defaults before sanitization
-        const withDefaults = {
-            name: coffeeData.name || 'Unknown',
-            origin: coffeeData.origin || 'Unknown',
-            process: coffeeData.process || 'washed',
-            cultivar: coffeeData.cultivar || 'Unknown',
-            altitude: coffeeData.altitude || '1500',
-            roaster: coffeeData.roaster || 'Unknown',
-            tastingNotes: coffeeData.tastingNotes || 'No notes',
-            addedDate: new Date().toISOString()
-        };
+        const withDefaults = buildCoffeeDefaults(coffeeData);
 
         // Sanitize the data before returning
         const sanitized = sanitizeCoffeeData(withDefaults);
