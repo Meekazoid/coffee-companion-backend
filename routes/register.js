@@ -38,54 +38,82 @@ async function sendTokenMail(email, token) {
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 </head>
-                <body style="margin:0;padding:0;background:#000000;font-family:'Helvetica Neue',Arial,sans-serif;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#000000;padding:40px 20px;">
+                <body style="margin:0;padding:0;background:#f5f5f0;font-family:'Helvetica Neue',Arial,sans-serif;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:48px 20px;">
                         <tr>
                             <td align="center">
                                 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
-                                    
-                                    <!-- Header -->
+
+                                    <!-- Header: Logo + Brand -->
                                     <tr>
-                                        <td style="padding-bottom:32px;">
-                                            <p style="margin:0;font-size:22px;font-weight:200;letter-spacing:0.15em;color:#ffffff;">
-                                                drip<span style="color:#d4a574;">·</span>mate
-                                            </p>
+                                        <td style="padding-bottom:28px;">
+                                            <table cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td style="vertical-align:middle;padding-right:14px;">
+                                                        <img src="https://dripmate.app/logo_dunkel_light.svg"
+                                                             alt="drip·mate"
+                                                             width="48"
+                                                             height="48"
+                                                             style="display:block;width:48px;height:48px;">
+                                                    </td>
+                                                    <td style="vertical-align:middle;">
+                                                        <p style="margin:0 0 3px;font-size:1.5rem;font-weight:200;letter-spacing:0.32em;color:#000000;line-height:1;">
+                                                            d r i p<span style="color:#8b6f47;margin:0 0.1em;">·</span>m a t e
+                                                        </p>
+                                                        <p style="margin:0;font-size:0.58rem;font-weight:300;letter-spacing:0.22em;text-transform:uppercase;color:#8b6f47;opacity:0.8;">
+                                                            Precision meets Ritual.
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </td>
                                     </tr>
 
-                                    <!-- Body -->
+                                    <!-- Card -->
                                     <tr>
-                                        <td style="background:#111111;border:1px solid #222222;border-radius:16px;padding:36px;">
-                                            
-                                            <p style="margin:0 0 16px;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.15em;color:#888888;">
-                                                Dein Beta-Zugang
+                                        <td style="background:#ffffff;border:1px solid #e0e0e0;border-radius:20px;padding:40px 36px;">
+
+                                            <p style="margin:0 0 8px;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.2em;color:#aaaaaa;font-weight:400;">
+                                                Beta-Zugang
                                             </p>
-                                            
-                                            <p style="margin:0 0 28px;font-size:1rem;color:#ffffff;line-height:1.6;font-weight:300;">
-                                                Willkommen bei dripmate. Hier ist dein persönlicher Zugangs-Token:
+
+                                            <p style="margin:0 0 32px;font-size:1rem;color:#1a1a1a;line-height:1.6;font-weight:300;">
+                                                Willkommen bei dripmate.<br>
+                                                Hier ist dein persönlicher Zugangs-Token:
                                             </p>
 
                                             <!-- Token Box -->
-                                            <div style="background:#000000;border:1px solid #d4a574;border-radius:10px;padding:20px;text-align:center;margin-bottom:28px;">
-                                                <p style="margin:0 0 6px;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.2em;color:#888888;">
-                                                    Token
-                                                </p>
-                                                <p style="margin:0;font-size:1.8rem;font-family:'Courier New',monospace;letter-spacing:0.1em;color:#d4a574;font-weight:400;">
-                                                    ${token}
-                                                </p>
-                                            </div>
+                                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+                                                <tr>
+                                                    <td style="background:#faf8f5;border:1.5px solid #8b6f47;border-radius:12px;padding:24px 20px;text-align:center;">
+                                                        <p style="margin:0 0 8px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.22em;color:#aaaaaa;">
+                                                            Dein Token
+                                                        </p>
+                                                        <p style="margin:0;font-size:2rem;font-family:'Courier New',Courier,monospace;letter-spacing:0.12em;color:#8b6f47;font-weight:600;">
+                                                            ${token}
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            </table>
 
-                                            <p style="margin:0 0 28px;font-size:0.88rem;color:#888888;line-height:1.6;">
-                                                Öffne dripmate und gib diesen Token ein um dich anzumelden. 
-                                                Der Token ist einmalig und wird an dein Gerät gebunden.
+                                            <!-- Text -->
+                                            <p style="margin:0 0 8px;font-size:0.88rem;color:#444444;line-height:1.8;font-weight:300;">
+                                                Öffne dripmate und gib diesen Token ein um dich anzumelden. Der Token ist einmalig und wird an dein Gerät gebunden. Installiere die App über den Browser auf deinem Homescreen.
                                             </p>
+
+                                            <!-- Divider -->
+                                            <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+                                                <tr>
+                                                    <td style="border-top:1px solid #e8e8e8;"></td>
+                                                </tr>
+                                            </table>
 
                                             <!-- CTA -->
                                             <table width="100%" cellpadding="0" cellspacing="0">
                                                 <tr>
                                                     <td align="center">
-                                                        <a href="https://dripmate.app" 
-                                                           style="display:inline-block;background:#d4a574;color:#000000;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:0.85rem;font-weight:600;letter-spacing:0.05em;">
+                                                        <a href="https://dripmate.app"
+                                                           style="display:inline-block;background:#8b6f47;color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:10px;font-size:0.88rem;font-weight:600;letter-spacing:0.05em;">
                                                             dripmate öffnen
                                                         </a>
                                                     </td>
@@ -98,8 +126,8 @@ async function sendTokenMail(email, token) {
                                     <!-- Footer -->
                                     <tr>
                                         <td style="padding-top:24px;">
-                                            <p style="margin:0;font-size:0.72rem;color:#444444;text-align:center;">
-                                                Diese Mail wurde an ${email} gesendet. 
+                                            <p style="margin:0;font-size:0.7rem;color:#aaaaaa;text-align:center;line-height:1.6;">
+                                                Diese Mail wurde an ${email} gesendet.<br>
                                                 Du erhältst sie weil du zur dripmate Beta eingeladen wurdest.
                                             </p>
                                         </td>
