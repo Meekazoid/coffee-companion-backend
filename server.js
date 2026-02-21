@@ -18,6 +18,7 @@ import analyzeRoutes from './routes/analyze.js';
 import healthRoutes from './routes/health.js';
 import brewsRoutes from './routes/brews.js';
 import adminRouter from './routes/admin.js';
+import registerRoute from './routes/register.js';
 
 dotenv.config();
 
@@ -120,6 +121,7 @@ app.use('/api/brews', brewsRoutes);
 app.use('/api/analyze-coffee', analyzeRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/admin', adminRouter);
+app.use('/api/auth/register', registerRoute);
 
 // ==========================================
 // ERROR HANDLING
