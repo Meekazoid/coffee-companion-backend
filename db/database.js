@@ -207,6 +207,27 @@ async function createPostgreSQLTables() {
         CREATE INDEX IF NOT EXISTS idx_users_device_id ON users(device_id);
         CREATE INDEX IF NOT EXISTS idx_coffees_user_created ON coffees(user_id, created_at DESC);
     `);
+
+    // Schritt 5: Whitelist & Registrations (Beta-Zugang)
+    await db.pool.query(`
+        CREATE TABLE IF NOT EXISTS whitelist (
+            id        SERIAL PRIMARY KEY,
+            email     TEXT NOT NULL UNIQUE,
+            name      TEXT DEFAULT '',
+            website   TEXT DEFAULT '',
+            note      TEXT DEFAULT '',
+            added_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS registrations (
+            id         SERIAL PRIMARY KEY,
+            email      TEXT NOT NULL UNIQUE,
+            token      TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            used       BOOLEAN DEFAULT FALSE
+        );
+    `);
+    console.log('✅ Whitelist & Registrations tables ready');
 }
 
 /**
@@ -265,6 +286,27 @@ async function createSQLiteTables() {
     }
 
     try { await db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_coffees_user_uid ON coffees(user_id, coffee_uid)`); } catch (err) { /* already exists */ }
+
+    // Whitelist & Registrations (Beta-Zugang)
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS whitelist (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            email     TEXT NOT NULL UNIQUE,
+            name      TEXT DEFAULT '',
+            website   TEXT DEFAULT '',
+            note      TEXT DEFAULT '',
+            added_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS registrations (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            email      TEXT NOT NULL UNIQUE,
+            token      TEXT NOT NULL UNIQUE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            used       INTEGER DEFAULT 0
+        );
+    `);
+    console.log('✅ Whitelist & Registrations tables ready');
 }
 
 export function getDatabase() {
