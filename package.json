@@ -1,7 +1,7 @@
 {
-  "name": "brewbuddy-backend",
+  "name": "dripmate-backend",
   "version": "1.0.0",
-  "description": "BrewBuddy Backend API - Coffee brewing assistant with AI analysis",
+  "description": "dripmate backend API - Coffee brewing assistant with AI analysis",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
   },
   "keywords": [
-    "brewbuddy",
+    "dripmate",
     "coffee",
     "api",
     "anthropic",
