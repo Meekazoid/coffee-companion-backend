@@ -94,7 +94,7 @@ export async function initDatabase() {
             throw e;
         }
         
-        const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'brewbuddy.db');
+        const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'dripmate.db');
         
         db = await sqliteOpen({
             filename: dbPath,

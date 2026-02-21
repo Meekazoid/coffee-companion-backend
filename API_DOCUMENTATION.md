@@ -1,14 +1,14 @@
-# BrewBuddy API Documentation v5.0
+# Dripmate API Documentation v5.0
 
 ## Base URL
 ```
-Production: https://brew-buddy-backend-production.up.railway.app
+Production: https://dripmate-backend-production.up.railway.app
 Development: http://localhost:3000
 ```
 
 ## Authentication
 
-BrewBuddy uses token-based authentication with device binding. After registration, include your token and deviceId in requests.
+Dripmate uses token-based authentication with device binding. After registration, include your token and deviceId in requests.
 
 ### Authentication Methods (v5.0+)
 
@@ -43,7 +43,7 @@ curl https://your-backend.railway.app/api/health
 ```json
 {
   "status": "ok",
-  "app": "brewbuddy",
+  "app": "dripmate",
   "version": "5.0.0-water-hardness",
   "timestamp": "2026-02-10T10:00:00.000Z",
   "uptime": 12345.67,
@@ -639,7 +639,7 @@ ALLOWED_ORIGINS=https://your-frontend.vercel.app,https://another-domain.com
 # Optional
 NODE_ENV=production
 DATABASE_URL=postgresql://user:pass@host:5432/db  # For PostgreSQL
-DATABASE_PATH=./brewbuddy.db                        # For SQLite
+DATABASE_PATH=./dripmate.db                        # For SQLite
 PORT=3000
 ```
 
